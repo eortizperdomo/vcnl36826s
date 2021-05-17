@@ -110,17 +110,17 @@ class VCNL36826S{
 	public:
 		VCNL36826S();
 		boolean exists();		//  Check connection
-		boolean init();			//	Initial configuration				
-		boolean setInter();		//	Set interruption
+		boolean initial();			//	Initial configuration				
+		//boolean setInter();		//	Set interruption
 		boolean lowPower();		//	Set low power mode
 		
-		boolean SetVCSELCurrent(uint8_t c3, uint8_t c4);
+		boolean SetVCSELCurrent(uint8_t c3 = B00000000 , uint8_t c4 = B00010100);
 
     	uint16_t readProximity(void);
     	
     private:
     	void write8b(uint8_t address,uint8_t data);
-    	void write16b(uint8_ address, uint8_t low, uint8_t high);
+    	void write16b(uint8_t address, uint8_t low, uint8_t high);
     	uint16_t readData(uint8_t command_code);
     	
     	uint8_t _i2caddr;
