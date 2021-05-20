@@ -1,0 +1,41 @@
+#######################################
+# Syntax Coloring Map For VCNL36826S #
+#######################################
+
+###################################################################
+# Classes/Datatypes (KEYWORD1) #
+###################################################################
+VCNL36826S	KEYWORD1
+
+
+###################################################################
+# Methods and Functions (KEYWORD2) #
+###################################################################
+
+readProximity	KEYWORD2
+initial		KEYWORD2
+interMod	KEYWORD2
+powerOffPS	KEYWORD2
+lowPower	KEYWORD2
+normalPower	KEYWORD2
+write16b	KEYWORD2
+readData	KEYWORD2
+readIntFlag	KEYWORD2
+
+
+
+###################################################################
+# Constants (LITERAL1) #
+###################################################################
+
+VCNL36826S_I2C_ADDR  	LITERAL1
+PS_CONF1		LITERAL1
+PS_CONF2		LITERAL1
+PS_CONF3		LITERAL1
+PS_CONF4		LITERAL1
+PS_THDL			LITERAL1
+PS_THDH			LITERAL1
+PS_LP			LITERAL1
+PS_DATA 		LITERAL1
+INT_FLAG		LITERAL1
+VCNL36826S_ID		LITERAL1

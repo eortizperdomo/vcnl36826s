@@ -8,12 +8,14 @@ Ernesto Ortiz-Perdomo
 */
 
 #include "VCNL36826S.h"
-/*  Instantiate a VCNL36862S class */
+
+/*  @brief Instantiate a VCNL36862S class */
+
 VCNL36826S::VCNL36826S(){
 	_i2caddr = VCNL36826S_I2C_ADDR;
 }
 
-/*  Check tha sensor exists and start I2C communication */
+/*  @brief Check tha sensor exists and start I2C communication */
 boolean VCNL36826S::exists(){
 	
 	Wire.begin();
@@ -33,51 +35,100 @@ boolean VCNL36826S::exists(){
 /*
 	@brief SetUp and basic functions 
 */
+
 boolean VCNL36826S::initial(){
+	// Reset  
+	write16b(PS_CONF1, 0x01, 0x00);
+	write16b(PS_CONF2, 0x00, 0x00);
+	write16b(PS_CONF3, 0x00, 0x00);
+	write16b(PS_THDL, 0x00, 0x00);
+	write16b(PS_THDH, 0x00, 0x00);
+	write16b(PS_CANC, 0x00, 0x00);
+	write16b(PS_AC, 0x00, 0x00);
 	
-	write16b(PS_CONF1, B00000011, B00000000); // Power ON
-	write16b(PS_CONF1, B10000011, B00000010); // Enable bias circuit
+	// Turn On Chip
+	//write16b(PS_CONF1, B00000011, B00000000); // Power ON
+	write16b(PS_CONF1, 0x03, 0x00); // Power ON
+	//write16b(PS_CONF1, B10000011, B00000010); // Enable bias circuit
+	write16b(PS_CONF1, 0x83, 0x02); // Enable bias circuit
 	
-	write16b(PS_CONF2, B11110110, B11110000);  // Start, Enable interruption logic high/low mode 
+	readData(PS_DATA);
 	
 	// Set the PS interrupt levels
-	write16b(PS_THDL, B10010000, B00000001);  // Low threshold dec 400 
-	write16b(PS_THDH, B11110100, B00000001);  // High threshold dec 500  Ref. Application Notes
-	return true;	
-}
-boolean VCNL36826S::SetVCSELCurrent(uint8_t conf3, uint8_t conf4){
-	/*
-		VCSEL_I_6mA    // Current selection 
-		VCSEL_I_8mA
-		VCSEL_I_10mA
-		VCSEL_I_12mA
-		VCSEL_I_14mA
-		VCSEL_I_16mA
-		VCSEL_I_18mA
-		VCSEL_I_20mA
-	*/
-	write16b(PS_CONF4,B00001000, B00010010);  //Default 10 mA
+	write16b(PS_THDL, 0x90, 0x01);		// Low threshold dec 400 
+	write16b(PS_THDH, 0xF4, 0x01);  	// High threshold dec 500  Ref. Application Notes
 	return true;
 }
-/*
-boolean VCNL36826S::setInter(){
-	write8b(PS_CONF3,VCSEL_I_10mA);
-	return true;
+
+/* Set interruption mode
+
+@brief must select one of this as argument of the function interMod("arg") 
+	args:
+		PS_INT_DIS        Disable interrupts
+		PS_INT_HL		  High/Low mode (No flag attached)
+		PS_INT_FH		  First high mode
+		PS_INT_NORMAL     Normal mode  
+
+*/
+boolean VCNL36826S::interMod(uint8_t selection){
+	uint8_t interrup = 0x12;
+	uint8_t set = interrup xor selection;
+	write16b(PS_CONF2, set, 0xD8);
+	
 }
+
+/*  Power off Proximity sensor  
+	@brief Set the proximity sensor off if needed. To turn the chip on again "initial()" must be called.
 */
 
-/*	Settings for Low Power Mode*/
+boolean VCNL36826S::poweOffPS(){
+	write16b(PS_CONF1, 0x00, 0x00);
+	write16b(PS_CONF2, 0x00, 0x00);
+}
+
+/*	Settings for Low Power Mode
+
+	@brief  According to requirements, Datasheet and Application notes.
+*/
 
 boolean VCNL36826S::lowPower(){
-	write16b(PS_CONF3, B0001100, B00010010); 
-	write16b(PS_LP, B10101101, B00000111);  
-	return true;
+	write16b(PS_CONF2, 0xE4, 0xE8);				// Period 80 ms, persistence 3, interrupt h/l mode, Smart PS persistence disabled PS Started
+	write16b(PS_CONF3, B0001100, B00010010);	// Include PS_CONF4 (PS_CONF3_H) VCSEL_I = 10mA
+	write16b(PS_LP, B10101100, B00000111);  	// Period 320 ms, enable Low Power
 }
+
+/*  Settings for Normal Power mode */
+boolean VCNL36826S::normalPower(){
+	write16b(PS_LP, 0x3F, 0x00);  
+	write16b(PS_CONF2, B00010110, B00011000);
+	write16b(PS_CONF3, B01011100, B11110111);  //  VCSEL 20mA
+}
+
 
 /*	Return 16-bit proximity measurement */	
 
 uint16_t VCNL36826S::readProximity(){
 	return readData(PS_DATA);
+}
+
+
+/*  Reading the Interruption Flag 8 bits
+
+	High/Low interruption mode no Interruption Flag attached.
+	Only if Normal or First high interruption mode 
+	
+*/	
+uint8_t VCNL36826S::readIntFlag(){
+	uint16_t reading;
+	Wire.beginTransmission(_i2caddr);
+	Wire.write(INT_FLAG);
+	Wire.endTransmission(false);
+	Wire.requestFrom(_i2caddr, uint8_t(2));
+	while(!Wire.available());
+		uint8_t byteLow = Wire.read();
+	while(!Wire.available());
+		uint16_t byteHigh = Wire.read();
+	return byteHigh;
 }
 
 /****************************************************************************

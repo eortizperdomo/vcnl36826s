@@ -27,7 +27,7 @@ e_ortizpe1810@hotmail.com
 #define PS_THDH       0x06
 #define PS_CANC       0x07
 #define PS_AC_L       0x08
-#define PS_LP     0x08
+#define PS_LP     	  0x08
 #define PS_DATA       0xF8
 #define INT_FLAG      0xF9
 #define VCNL36826S_ID 0xFA
@@ -50,9 +50,10 @@ Reserverd
 #define PS_PERIOD_20ms 	  0x01<<6
 #define PS_PERIOD_40ms    0x02<<6
 #define PS_PERIOD_80ms    0x03<<6
-#define PS_PERS                     //PS interrupt persistence setting
 #define PS_INT_DIS        0x00<<2
-#define PS_INT_EN         0x03<<2   //Enable interruptions 
+#define PS_INT_HL		  0x01<<2
+#define PS_INT_FH		  0x02<<2
+#define PS_INT_NORMAL     0x03<<2   //Enable interruptions 
 #define PS_SMART_PERS_EN  0x01<<1   // Enable smart persistence
 #define PS_SMART_PERS_DIS 0x00<<1
 #define PS_ST_S           0x00<<0     //start PS
@@ -85,7 +86,7 @@ Reserverd
 #define PS_SC_EN      0x03<<5    		// Sun cancelation enable
 #define PS_HD_12      0x00<<4			// PS output 12 bits
 #define PS_HD_16 	  0x01<<4			// PS output 16 bits
-#define VCSEL_I_6mA   0x00<<0       // Current selection 
+#define VCSEL_I_6mA   0x00<<0      		// Current selection 
 #define VCSEL_I_8mA   0x01<<0
 #define VCSEL_I_10mA    0x02<<0
 #define VCSEL_I_12mA    0x03<<0
@@ -109,17 +110,17 @@ Reserverd
 class VCNL36826S{
 	public:
 		VCNL36826S();
-		boolean exists();		//  Check connection
+		boolean exists();			//  Check connection
 		boolean initial();			//	Initial configuration				
-		//boolean setInter();		//	Set interruption
-		boolean lowPower();		//	Set low power mode
-		
-		boolean SetVCSELCurrent(uint8_t c3 = B00000000 , uint8_t c4 = B00010100);
-
+		boolean poweOffPS();		//  Turn off PS
+		boolean lowPower();			//	Sets low power mode (less accuracy)
+		boolean normalPower();		//  Sets normal power mode  (more accuracy)
     	uint16_t readProximity(void);
+    	uint8_t readIntFlag(void);
+    	boolean interMod(uint8_t selection);
     	
     private:
-    	void write8b(uint8_t address,uint8_t data);
+    	void write8b(uint8_t address, uint8_t data);
     	void write16b(uint8_t address, uint8_t low, uint8_t high);
     	uint16_t readData(uint8_t command_code);
     	
