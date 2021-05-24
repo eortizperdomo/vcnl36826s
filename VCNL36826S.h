@@ -109,6 +109,7 @@ Reserverd
 
 class VCNL36826S{
 	public:
+		
 		VCNL36826S();
 		boolean exists();			//  Check connection
 		boolean initial();			//	Initial configuration				
@@ -120,10 +121,10 @@ class VCNL36826S{
     	boolean interMod(uint8_t selection);
     	
     private:
-    	void write8b(uint8_t address, uint8_t data);
+    	
     	void write16b(uint8_t address, uint8_t low, uint8_t high);
     	uint16_t readData(uint8_t command_code);
-    	
+    	uint16_t readCom(int address, int cmdcod);
     	uint8_t _i2caddr;
     	TwoWire *_wire;
 };
