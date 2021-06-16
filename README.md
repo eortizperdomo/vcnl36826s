@@ -1,5 +1,5 @@
 # vcnl36826s
-Librería Sensor VCNL36826s
+## Librería Sensor VCNL36826s
 
 Esta librería fue creada a petición del cliente quien pretende que el sensor funcione en bajo consumo mientras se activa la interrupción.
 
