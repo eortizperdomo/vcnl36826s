@@ -1,9 +1,9 @@
 /*
-@file VCNL36826S.h
-
-@Author
-Ernesto Ortiz-Perdomo
-e_ortizpe1810@hotmail.com
+    @file VCNL36826S.h
+    
+    @Author 
+    Ernesto Ortiz - Perdomo
+    V 1.1.0
 
 */
 
@@ -11,121 +11,110 @@ e_ortizpe1810@hotmail.com
 #define VCNL36826S_h
 
 #include "Arduino.h"
-#include <Wire.h>       //Std library I2C
+#include <Wire.h>
 
-/*   Constants   */
+#define VCNL36826S_I2C_ADDR 0x60
+#define VCNL36826S_ID  0xFA
+#define PS_DATA 0xF8
 
-#define VCNL36826S_I2C_ADDR 0x60     // I2C Address 
+#define PS_ON  0x02
+#define PS_INIT 0x80
+#define PS_bit1 0x200
 
-/*   Registers   */ 
-
-#define PS_CONF1      0x00  
-#define PS_CONF2      0x03
-#define PS_CONF3      0x04
-#define PS_CONF4      0x04
-#define PS_THDL       0x05
-#define PS_THDH       0x06
-#define PS_CANC       0x07
-#define PS_AC_L       0x08
-#define PS_LP     	  0x08
-#define PS_DATA       0xF8
-#define INT_FLAG      0xF9
-#define VCNL36826S_ID 0xFA
-#define PS_AC         0xFB
-
-/*	Register 0x00 Data byte low  Table 2 Datasheet CONF1_L*/
-
-#define PS_INIT 0x01<<7
-#define PS_ON 0x01<<1
-
-/*	Register 0x00 Data byte high  Table 2 Datasheet CONF1_H
-
-Reserverd 
-
-*/
-
-/*  Register 0x03 Data byte Low  Table 4 Datasheet CONF2_L */
-
-#define PS_PERIOD_10ms    0x00<<6
-#define PS_PERIOD_20ms 	  0x01<<6
-#define PS_PERIOD_40ms    0x02<<6
-#define PS_PERIOD_80ms    0x03<<6
-#define PS_INT_DIS        0x00<<2
-#define PS_INT_HL		  0x01<<2
-#define PS_INT_FH		  0x02<<2
-#define PS_INT_NORMAL     0x03<<2   //Enable interruptions 
-#define PS_SMART_PERS_EN  0x01<<1   // Enable smart persistence
-#define PS_SMART_PERS_DIS 0x00<<1
-#define PS_ST_S           0x00<<0     //start PS
-#define PS_ST_P           0x01<<0
-
-/*	Register 0x03 data byte high Table 5 Datasheet CONF2_H */
-
-#define PS_IT_1T    0x00<<6
-#define PS_IT_2T    0x01<<6
-#define PS_IT_4T    0x02<<6		
-#define PS_IT_8T    0x03<<6
-#define PS_MPS_1    0x00<<4
-#define PS_MPS_2    0x01<<4
-#define PS_MPS_4    0x02<<4
-#define PS_MPS_8    0x03<<4
-#define PS_ITB_25   0x00<<3
-#define PS_ITB_50   0x01<<3
-#define PS_HG_EN    0x00<<2
-#define PS_HG_DIS   0x00<<2
-
-/*	Register 0x04 Data byte low  Table 6 PS_CONF3  */
-
-#define PS_AF_EN    0x01<<6
-#define PS_AUTO     0x00<<6
-#define PS_FOR_Trig 0x01<<5
+#define PS_ST 0x00 
 
 
-/* Register 0x04 Data byte high Table 7 PS_CONF4*/
+#define CONF_1 0x00
+#define CONF_2 0x03
+#define CONF_3 0x04   //L 3 H 4
+#define THDL 0X05
+#define THDH 0x06
+#define CANC 0x07
+#define AC_LPPERI 0x08
+#define INT_Flag 0xF9  // H FLag
 
-#define PS_SC_EN      0x03<<5    		// Sun cancelation enable
-#define PS_HD_12      0x00<<4			// PS output 12 bits
-#define PS_HD_16 	  0x01<<4			// PS output 16 bits
-#define VCSEL_I_6mA   0x00<<0      		// Current selection 
-#define VCSEL_I_8mA   0x01<<0
-#define VCSEL_I_10mA    0x02<<0
-#define VCSEL_I_12mA    0x03<<0
-#define VCSEL_I_14mA    0x04<<0
-#define VCSEL_I_16mA    0x05<<0
-#define VCSEL_I_18mA    0x06<<0
-#define VCSEL_I_20mA    0x07<<0
+/*  Init registers */
 
-/*	Register 0x08 Data byte low Table 12  */
-#define PS_LPPER_40		0x00<<1 	
-#define PS_LPPER_80		0x01<<1
-#define PS_LPPER_160	0x02<<1
-#define PS_LPPER_320	0x03<<1  
-#define PS_LPEN_EN		0x01<<0
-#define PS_LPEN_DIS		0x00<<0
+// VCSEL current 
+#define VCSEL_I_6mA     0x00
+#define VCSEL_I_8mA     0x01
+#define VCSEL_I_10mA    0x02
+#define VCSEL_I_12mA    0x03
+#define VCSEL_I_14mA    0x04
+#define VCSEL_I_16mA    0x05
+#define VCSEL_I_18mA    0x06
+#define VCSEL_I_20mA    0x07
 
-/*
-	@brief VCNL36826S class
-*/
+// PS HD 
+#define PS_HD_12   0x00
+#define PS_HD_16   0x10    // This one
 
-class VCNL36826S{
-	public:
-		
-		VCNL36826S();
-		boolean exists();			//  Check connection
-		boolean initial();			//	Initial configuration				
-		boolean poweOffPS();		//  Turn off PS
-		boolean lowPower();			//	Sets low power mode (less accuracy)
-		boolean normalPower();		//  Sets normal power mode  (more accuracy)
-    	uint16_t readProximity(void);
-    	uint8_t readIntFlag(void);
-    	boolean interMod(uint8_t selection);
-    	
-    private:
-    	
-    	void write16b(uint8_t address, uint8_t low, uint8_t high);
-    	uint16_t readData(uint8_t command_code);
-    	uint16_t readCom(int address, int cmdcod);
-    	uint8_t _i2caddr;
-    	TwoWire *_wire;
-};
+// Sun cancelation
+#define SC_EN 0xE0
+
+// PS Period
+#define PS_PERIOD_10ms    0x00   // More current
+#define PS_PERIOD_20ms 	  0x40
+#define PS_PERIOD_40ms    0x80
+#define PS_PERIOD_80ms    0xC0
+
+// PS Smart persistence
+
+#define SMART_PERS  0X10
+// PS Integration time 
+#define PS_IT_1T    0x00
+#define PS_IT_2T    0x40
+#define PS_IT_4T    0x80	
+#define PS_IT_8T    0xC0
+
+// PS ITB 
+#define PS_ITB_25us   0x00
+#define PS_ITB_50us   0X08    // 50 us better sensitvity
+
+//   PS Persistence
+#define PERS_1    0x00
+#define PERS_2    0x10
+#define PERS_3    0x20
+#define PERS_4    0x30
+
+// Interruption
+#define INT_DIS   0x00
+#define LOGIC_LH  0x04
+#define FIRST_H   0x08
+#define INT_EN    0x0C
+
+// Low power
+#define LPEN_DIS 0x00
+#define LPEN_EN  0x01
+
+// Low power period (ms)
+#define LPPER_40   0x00
+#define LPPER_80   0x02
+#define LPPER_160  0x04
+#define LPPER_320  0x06
+
+class VCNL36826S
+   {
+   private:
+       void write16b(uint8_t address, uint8_t low, uint8_t high);
+       uint16_t readData(uint8_t command_code);
+       uint8_t readData2(uint8_t command_code);
+       void writeToCommand(uint8_t _cmdCode, uint16_t value);
+       uint8_t _i2caddr;
+       TwoWire *_wire;
+
+   public:
+       VCNL36826S();
+       //~VCNL36826S();
+       boolean begin(bool resetToDefault = false);
+       boolean isConnected();
+       boolean exists();
+       boolean initparam();
+       boolean power_off();
+       boolean lowPower(int);
+       boolean reset();
+       uint16_t readProximity(void);
+       uint8_t readInt(void);
+       
+   };
 #endif
