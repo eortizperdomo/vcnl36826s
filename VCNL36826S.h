@@ -24,6 +24,7 @@
 #define PS_STP 0x01
 
 
+
 #define CONF_1 0x00
 #define CONF_2 0x03
 #define CONF_3 0x04   //L 3 H 4
@@ -95,6 +96,7 @@
 #define FIRST_H   0x08
 #define INT_EN    0x0C
 
+
 // Autocalibration
 
 #define AC_T3ms  0x00
@@ -117,6 +119,7 @@
 #define AC_INT_EN  0X01
 
 
+
 // Low power
 #define LPEN_DIS 0x00
 #define LPEN_EN  0x01
@@ -135,21 +138,27 @@ class VCNL36826S
        uint8_t readData2(uint8_t command_code);
        void writeToCommand(uint8_t _cmdCode, uint16_t value);
        uint8_t _i2caddr;
+
        uint8_t _num;
+
        TwoWire *_wire;
 
    public:
        VCNL36826S();
+
        boolean setthreshold(uint16_t,uint16_t);
        boolean begin(bool resetToDefault = false);
        boolean isConnected();
        boolean exists();
        boolean initparam();
        boolean power_off();
+
        boolean lowPower();
+
        boolean reset();
        uint16_t readProximity(void);
        uint8_t readInt(void);
        
    };
+
 #endif
