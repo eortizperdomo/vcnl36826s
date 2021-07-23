@@ -3,8 +3,7 @@
     
     @Author 
     Ernesto Ortiz - Perdomo
-    V 1.1.0
-
+    V 2.1.0
 */
 
 #ifndef VCNL36826S_h
@@ -21,7 +20,9 @@
 #define PS_INIT 0x80
 #define PS_bit1 0x200
 
-#define PS_ST 0x00 
+#define PS_ST 0x00
+#define PS_STP 0x01
+
 
 
 #define CONF_1 0x00
@@ -61,6 +62,7 @@
 // PS Smart persistence
 
 #define SMART_PERS  0X10
+
 // PS Integration time 
 #define PS_IT_1T    0x00
 #define PS_IT_2T    0x40
@@ -77,11 +79,46 @@
 #define PERS_3    0x20
 #define PERS_4    0x30
 
+//Force mode
+#define PS_AF 0x40
+
+
+//Multipulse setting
+
+#define MPS1 0x00
+#define MPS2 0x10
+#define MPS4 0x20
+#define MPS8 0x30
+
 // Interruption
 #define INT_DIS   0x00
 #define LOGIC_LH  0x04
 #define FIRST_H   0x08
 #define INT_EN    0x0C
+
+
+// Autocalibration
+
+#define AC_T3ms  0x00
+#define AC_T6ms  0x40
+#define AC_T12ms 0x80
+#define AC_T24ms 0xC0
+
+#define AC_NUM1  0X00
+#define AC_NUM2  0X10
+#define AC_NUM4  0X20
+#define AC_NUM8  0X30
+
+#define AC_DIS 0X00
+#define AC_EN  0X08
+
+#define AC_TRIGGER_DIS 0X00
+#define AC_TRIGGER_EN  0X04
+
+#define AC_INT_DIS 0X00
+#define AC_INT_EN  0X01
+
+
 
 // Low power
 #define LPEN_DIS 0x00
@@ -101,20 +138,27 @@ class VCNL36826S
        uint8_t readData2(uint8_t command_code);
        void writeToCommand(uint8_t _cmdCode, uint16_t value);
        uint8_t _i2caddr;
+
+       uint8_t _num;
+
        TwoWire *_wire;
 
    public:
        VCNL36826S();
-       //~VCNL36826S();
+
+       boolean setthreshold(uint16_t,uint16_t);
        boolean begin(bool resetToDefault = false);
        boolean isConnected();
        boolean exists();
        boolean initparam();
        boolean power_off();
-       boolean lowPower(int);
+
+       boolean lowPower();
+
        boolean reset();
        uint16_t readProximity(void);
        uint8_t readInt(void);
        
    };
+
 #endif
