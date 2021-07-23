@@ -1,188 +1,170 @@
 /*
-
 @file VCNL36826S.cpp
 
 @Author 
 Ernesto Ortiz-Perdomo
-
+V 2.1.0
 */
 
 #include "VCNL36826S.h"
 
-/*  @brief Instantiate a VCNL36862S class */
-
-VCNL36826S::VCNL36826S(){
-	_i2caddr = VCNL36826S_I2C_ADDR;
+VCNL36826S::VCNL36826S()
+{
+    _i2caddr = VCNL36826S_I2C_ADDR;
+    _num = 0x02;
 }
 
-/*  @brief Check tha sensor exists and start I2C communication */
-boolean VCNL36826S::exists(){
-	
-	Wire.begin();
-	Wire.beginTransmission(_i2caddr);
-	Wire.write(VCNL36826S_ID);
-	Wire.endTransmission(false);
-	Wire.requestFrom(_i2caddr,uint8_t(2)); // Read from Sensor 2 bytes
-	byte lowByte = Wire.read();
-	byte highByte = Wire.read();
-	if(lowByte == 0x26){
-		return true;
-	}
-	else{
-		return false;
-	}
+uint16_t VCNL36826S::readProximity(void)
+{
+    return readData(PS_DATA);
 }
 
-/*
-	@brief SetUp and basic functions 
-*/
-
-boolean VCNL36826S::initial(){
-	// Reset  
-	write16b(PS_CONF1, 0x01, 0x00);
-	write16b(PS_CONF2, 0x00, 0x00);
-	write16b(PS_CONF3, 0x00, 0x00);
-	write16b(PS_THDL, 0x00, 0x00);
-	write16b(PS_THDH, 0x00, 0x00);
-	write16b(PS_CANC, 0x00, 0x00);
-	write16b(PS_AC, 0x00, 0x00);
-	
-	write16b(PS_CONF4, 0x0C, 0xF7);
-	write16b(PS_CONF2, 0x66, 0xFC);
-	// Turn On Chip
-	write16b(PS_CONF1, 0x03, 0x00); // Power ON
-	//write16b(PS_CONF1, B10000011, B00000010); // Enable bias circuit
-	write16b(PS_CONF1, 0x83, 0x02); // Enable bias circuit
-	
-	readCom(_i2caddr, PS_DATA);
-	
-	// Set the PS interrupt levels
-	write16b(PS_THDL, 0x74, 0x0E);		// Low threshold dec 3700  ~= 180 mm
-	write16b(PS_THDH, 0xFF, 0x0F);  	// High threshold dec 4095 Max ~= 200 mm 
-	return true;
+boolean VCNL36826S::exists()
+{
+    Wire.begin();
+    Wire.beginTransmission(_i2caddr);
+    Wire.write(VCNL36826S_ID);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_i2caddr,_num);
+    byte lowByte = Wire.read();
+    //byte highByte = Wire.read();
+    if(lowByte == 0x26)
+    {
+        Serial.println("Found!");
+        return true;
+    }
+    else
+    {
+        return false;
+        Serial.println("Device not found.");
+    }
 }
 
-boolean VCNL36826S::interMod(uint8_t selection){
-	uint8_t interrup = 0x12;
-	uint8_t set = interrup xor selection;
-	write16b(PS_CONF2, set, 0xD8);
-	
+boolean VCNL36826S::initparam()
+{
+    uint16_t current_value;
+    reset();
+    // Configuration register 1
+    current_value = readData(CONF_1);  
+    current_value = current_value | PS_ON;
+    writeToCommand(CONF_1, current_value);  // Power on 
+    
+    current_value = readData(CONF_1);
+    current_value = current_value | (PS_INIT|PS_bit1);
+    writeToCommand(CONF_1, current_value);
+
+    // Conf reg 2
+    current_value = readData(CONF_2);
+    current_value = current_value | PS_ST;
+    writeToCommand(CONF_2, current_value);
+
+    // read proximity data
+
+    readData(PS_DATA);
+
+    // VCSEL 6 mA, Sun cancel enabled & Output 16 bits
+
+    current_value = readData(CONF_3);
+    current_value = current_value | PS_AF | ((VCSEL_I_6mA|PS_HD_16)<< 8); //|SC_EN
+
+    // PS period = 80 ms, PS Integration time 8T,  
+    current_value = readData(CONF_2);
+    current_value = current_value | PS_PERIOD_80ms | (PS_IT_8T<<8) |(PS_ITB_50us<<8)|(MPS8<<8);
+    current_value = current_value | PERS_4 | FIRST_H| SMART_PERS;
+
+    writeToCommand(CONF_2,current_value);
+
+    current_value = readData(AC_LPPERI);
+    current_value = current_value | AC_T24ms | AC_NUM4 |AC_EN|AC_TRIGGER_EN|AC_INT_EN;
+    writeToCommand(AC_LPPERI, current_value);
+
+    return true;
+}
+boolean VCNL36826S::setthreshold(uint16_t upper_t,uint16_t lower_t)
+{
+    writeToCommand(THDL,lower_t);
+    writeToCommand(THDH,upper_t);
+    return true;
 }
 
-/*  Power off Proximity sensor  
-	@brief Set the proximity sensor off if needed. To turn the chip on again "initial()" must be called.
-*/
-
-boolean VCNL36826S::poweOffPS(){
-	write16b(PS_CONF1, 0x00, 0x00);
-	write16b(PS_CONF2, 0x00, 0x00);
+boolean VCNL36826S::reset()
+{
+    writeToCommand(CONF_1,0x01);
+    writeToCommand(CONF_2,0x00);
+    writeToCommand(CONF_3,0x00);
+    writeToCommand(THDH,0x00);
+    writeToCommand(THDL,0x00);
+    writeToCommand(AC_LPPERI,0x00);
+    return true;
+}
+boolean VCNL36826S::lowPower()
+{
+    uint16_t current_value;
+    current_value = readData(AC_LPPERI);
+    current_value = current_value | ((LPEN_EN | LPPER_320 ) << 8);
+    writeToCommand(AC_LPPERI, current_value);
+    //Serial.println("Entering low power mode!");
+    return true;
+}
+boolean VCNL36826S::power_off()
+{
+    reset();
+    Serial.println("Device off");
+    return true;
 }
 
-/*	Settings for Low Power Mode
-
-	@brief  According to requirements, Datasheet and Application notes.
-*/
-
-boolean VCNL36826S::lowPower(){
-	write16b(PS_CONF2, 0xE4, 0xE8);				// Period 80 ms, persistence 3, interrupt h/l mode, Smart PS persistence disabled PS Started
-	write16b(PS_CONF3, 0x0C, 0x12);	// Include PS_CONF4 (PS_CONF3_H) VCSEL_I = 10mA
-	write16b(PS_LP, 0xAC, 0x07);  	// Period 320 ms, enable Low Power
+uint8_t VCNL36826S::readInt()
+{
+    uint8_t inter = readData2(INT_Flag);
+    return inter;
+}
+/* _______________________________________________________
+    @brief I2C Interface
+*/ 
+uint16_t VCNL36826S::readData(uint8_t command)
+{
+    Wire.begin();
+    Wire.beginTransmission(_i2caddr);
+    Wire.write(command);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_i2caddr,_num);
+    /*if(Wire.available() != 0x02);
+    {
+        Serial.println("No hay respuesta  ");
+        return;
+    }*/
+    byte Lbyte = Wire.read();
+    byte Hbyte = Wire.read();
+    uint16_t value = (Hbyte << 8)| Lbyte;
+    return value;
+}
+uint8_t VCNL36826S::readData2(uint8_t command)
+{
+    Wire.begin();
+    Wire.beginTransmission(_i2caddr);
+    Wire.write(command);
+    Wire.endTransmission(false);
+    Wire.requestFrom(_i2caddr,_num);
+    
+    byte Lbyte = Wire.read();  // Not used
+    byte Hbyte = Wire.read();  // Int flag
+    return Hbyte;
 }
 
-/*  Settings for Normal Power mode */
-boolean VCNL36826S::normalPower(){
-	write16b(PS_LP, 0x3F, 0x00);  
-	write16b(PS_CONF2, 0x16, 0x18);
-	write16b(PS_CONF3, 0x5C, 0xF7);  //  VCSEL 20mA
+void VCNL36826S::write16b(uint8_t reg, uint8_t Lbyte, uint8_t Hbyte)
+{
+    Wire.beginTransmission(_i2caddr);
+    Wire.write(reg);
+    Wire.write(Lbyte);
+    Wire.write(Hbyte);
+    Wire.endTransmission();
 }
 
-
-/*	Return 16-bit proximity measurement */	
-
-uint16_t VCNL36826S::readProximity(){
-	//return readData(PS_DATA);
-	return readCom(_i2caddr,PS_DATA);
-}
-
-
-/*  Reading the Interruption Flag 8 bits
-
-	High/Low interruption mode no Interruption Flag attached.
-	Only if Normal or First high interruption mode 
-	
-*/	
-uint8_t VCNL36826S::readIntFlag(){
-	Wire.beginTransmission(_i2caddr);
-	Wire.write(INT_FLAG);
-	Wire.endTransmission(false);
-	Wire.requestFrom(_i2caddr,uint8_t(2));
-	if (Wire.available() != 0x02)
-	{
-		return 0;
-	}
-	byte Lbyte = Wire.read();
-	byte Hbyte = Wire.read();
-	
-	return Hbyte;
-}
-	/*
-	uint16_t reading;
-	Wire.beginTransmission(_i2caddr);
-	Wire.write(INT_FLAG);
-	Wire.endTransmission(false);
-	Wire.requestFrom(_i2caddr, uint8_t(2));
-	while(!Wire.available());
-		uint8_t byteLow = Wire.read();
-	while(!Wire.available());
-		uint16_t byteHigh = Wire.read();
-	return byteHigh;
-	}
-	*/
-
-
-/****************************************************************************
-@brief I2C Interface
-
-*****************************************************************/
-
-/*	
-
-uint16_t VCNL36826S::readData(uint8_t command){
-	uint16_t reading;
-	Wire.beginTransmission(_i2caddr);
-	Wire.write(command);
-	Wire.endTransmission(false);
-	Wire.requestFrom(_i2caddr, uint8_t(2));
-	while(!Wire.available());
-		uint8_t byteLow = Wire.read();
-	while(!Wire.available());
-		uint16_t byteHigh = Wire.read();
-	reading = (byteHigh <<= 8) + byteLow;
-}
-*/
-
-/*  Read 2 bytes from sensor */
-uint16_t VCNL36826S::readCom(int address, int cmdCod){
-	Wire.beginTransmission(address);
-	Wire.write(cmdCod);
-	Wire.endTransmission(false);
-	Wire.requestFrom(address,0x02);
-	if (Wire.available() != 0x02)
-	{
-		return 0;
-	}
-	byte Lbyte = Wire.read();
-	byte Hbyte = Wire.read();
-	
-	uint16_t value = (Hbyte << 8) | Lbyte;
-	return value;
-}
-/*	Write 2 bytes to VCNL36862 data byte low data byte high*/
-
-void VCNL36826S::write16b(uint8_t address, uint8_t low, uint8_t high){
-	Wire.beginTransmission(_i2caddr);
-	Wire.write(address);
-	Wire.write(low);
-	Wire.write(high);
-	Wire.endTransmission();
+void VCNL36826S::writeToCommand(uint8_t _cmdCode, uint16_t value)
+{
+    Wire.beginTransmission(_i2caddr);
+    Wire.write(_cmdCode);
+    Wire.write(uint8_t(value & 0xff));  // Low byte
+    Wire.write(uint8_t(value >> 8));   // High byte
+    Wire.endTransmission();
 }
